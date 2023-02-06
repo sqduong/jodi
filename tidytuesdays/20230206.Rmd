@@ -127,7 +127,7 @@ nCol <- floor(sqrt(n))
 mygrid <- do.call("grid.arrange", c(plist, ncol=nCol))
 
 tg <- textGrob('Big Tech Stock Prices Prior to Latest Layoffs as of 2023 Feb 06', gp = gpar(fontsize = 24, fontface = 'bold'))
-cg <- textGrob('Source: Yahoo Finance via Kaggle (by Evan Gower); https://layoffs.fyi/', gp = gpar(fontsize = 16))
+cg <- textGrob('Source: Yahoo Finance via Kaggle (by Evan Gower); https://layoffs.fyi/. Vizualization by @dstephanieq', gp = gpar(fontsize = 16))
 margin <- unit(0.5, "line")
 grided <- mygrid
 png("./plots/tidytuesday_20230207.png", units = "mm",
