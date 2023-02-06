@@ -1,0 +1,143 @@
+---
+title: "TidyTuesday 2023-02-07"
+output: 
+  html_document:
+    code_folding: "hide"
+date: "2023-02-06"
+---
+
+https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-01-31/readme.md
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# libraries 
+pacman::p_load("ggplot2",
+               "grid",
+               "dplyr",
+               "rvest",
+               "gridExtra")
+
+# Or read in the data manually
+big_tech_stock_prices <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-07/big_tech_stock_prices.csv')
+big_tech_companies <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-07/big_tech_companies.csv')
+
+# layoffs
+layoffs_html <- read_html("https://airtable.com/embed/shrqYt5kSqMzHV9R5?backgroundColor=green&viewControls=on")
+
+```
+
+```{r sandbox}
+# source: https://airtable.com/embed/shrqYt5kSqMzHV9R5/tbl8c8kanuNB6bPYr?backgroundColor=green&viewControls=on
+layoff_companies <- tribble(
+  ~company, ~layoff_date,
+  "Alphabet Inc.", as.Date("2023-01-20"),
+  "Meta Platforms, Inc.", as.Date("2022-11-09"),
+  "Adobe Inc.", as.Date("2022-12-06"),
+  "Cisco Systems, Inc.", as.Date("2022-11-16"),
+  "International Business Machines Corporation", as.Date("2023-01-25"),
+  
+  "Intel Corporation", as.Date("2021-12-06"),
+  "Intel Corporation", as.Date("2023-01-30"),
+  
+  "Amazon.com, Inc.", as.Date("2022-10-28"),
+  "Amazon.com, Inc.", as.Date("2022-11-16"),
+  "Amazon.com, Inc.", as.Date("2023-01-04"),
+  
+  "Salesforce, Inc.", as.Date("2020-08-26"),
+  "Salesforce, Inc.", as.Date("2022-10-13"),
+  "Salesforce, Inc.", as.Date("2022-11-07"),
+  "Salesforce, Inc.", as.Date("2023-01-04"),
+  
+  "Microsoft Corporation", as.Date("2023-01-18"),
+  "Microsoft Corporation", as.Date("2022-10-17"),
+  "Microsoft Corporation", as.Date("2022-07-12"),
+  
+  "Netflix, Inc.", as.Date("2022-04-28"),
+  "Netflix, Inc.", as.Date("2022-05-17"),
+  "Netflix, Inc.", as.Date("2022-06-23"),
+  "Netflix, Inc.", as.Date("2022-09-14"),
+  
+  "Oracle Corporation", as.Date("2022-11-01"),
+  "Oracle Corporation", as.Date("2022-08-01"),
+  "Oracle Corporation", as.Date("2023-01-17"),
+  
+  "Tesla, Inc.", as.Date("2022-06-03")
+) |>
+  left_join(big_tech_companies, by = "company") |>
+  group_by(company) |>
+  slice_max(layoff_date) |> # look at the latest layoff
+  ungroup()
+
+stock_prices <- big_tech_stock_prices
+
+
+
+myplot_function <- function(target_stock_symbol, window = 90) {
+  temp_data <- layoff_companies |>
+         dplyr::inner_join(stock_prices, by = "stock_symbol") |>
+         dplyr::filter(date >= layoff_date - lubridate::days(window),
+                       date <= layoff_date) |>
+         dplyr::filter( stock_symbol == target_stock_symbol)
+  
+  layoff_lines <- temp_data |>
+             dplyr::filter(stock_symbol==target_stock_symbol) |> 
+    dplyr::distinct(layoff_date) |>
+    dplyr::pull(layoff_date) 
+  
+    output_plot <- ggplot(temp_data,
+         aes(x = date)) +
+      geom_line(aes(y = open), size = 1, col = "cadetblue1") +
+      scale_x_date(
+        breaks = seq(min(layoff_lines) - lubridate::days(window), max(layoff_lines), by = round(window/3,0)),
+        # date_breaks = paste0(round(window/3,0)," day"), 
+        date_labels = "%Y\n%b %d",
+        limits = c(min(layoff_lines) - lubridate::days(window),
+             max(layoff_lines) + lubridate::days(15))) +
+      geom_vline(xintercept = layoff_lines,
+             col = "red",
+             size = 1
+               ) +
+      ylab("Price ($)") +
+      xlab("") +
+      theme_classic(base_size = 16) +
+      ggtitle(glue::glue("{target_stock_symbol}"),
+              subtitle = glue::glue("{unique(temp_data$company)}")) + 
+    theme(plot.title = element_text(size = 20, face = "bold"),
+          plot.subtitle = element_text(size = 16),
+          panel.background = element_rect(fill = "dodgerblue4", colour = "#6D9EC1",
+                                size = 2, linetype = "solid"),
+          panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                colour = "dodgerblue"), 
+          panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                colour = "dodgerblue"))
+    return(output_plot)
+}
+
+plist <- distinct(layoff_companies, stock_symbol) |> pull(stock_symbol) |>
+  lapply(function(x){
+     myplot_function(target_stock_symbol = x,
+                window = 180)
+  })
+  
+
+n <- length(plist)
+nCol <- floor(sqrt(n))
+
+mygrid <- do.call("grid.arrange", c(plist, ncol=nCol))
+
+tg <- textGrob('Big Tech Stock Prices Prior to Latest Layoffs as of 2023 Feb 06', gp = gpar(fontsize = 24, fontface = 'bold'))
+cg <- textGrob('Source: Yahoo Finance via Kaggle (by Evan Gower); https://layoffs.fyi/', gp = gpar(fontsize = 16))
+margin <- unit(0.5, "line")
+grided <- mygrid
+png("./plots/tidytuesday_20230207.png", units = "mm",
+    res=600)
+gridExtra::grid.arrange(tg,  grided, cg,
+                        heights = unit.c(grobHeight(tg) + 1.2*margin, 
+                                         unit(1,"null"),
+                                         grobHeight(cg) + margin
+                                         ))
+dev.off()
+
+```
+
