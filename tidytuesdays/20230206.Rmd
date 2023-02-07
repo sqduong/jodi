@@ -124,32 +124,32 @@ myplot_function <- function(target_stock_symbol, window = 90) {
                ) +
       ylab("Price ($)") +
       xlab("") +
-      theme_classic(base_size = 16) +
+      theme_classic(base_size = 8) +
       ggtitle(glue::glue("{target_stock_symbol}\n{unique(temp_data$company)}"),
               subtitle = glue::glue("{window_pct_change$diff_pretty} ({window_pct_change$pct_diff_chr})")) + 
-    theme(plot.title = element_text(size = 18, face = "bold"),
+    theme(plot.title = element_text(size = 8, face = "bold"),
           panel.background = element_rect(fill = "dodgerblue4", colour = "#6D9EC1",
                                 size = 2, linetype = "solid"),
           panel.grid.major = element_line(size = 0.5, linetype = 'solid',
                                 colour = "dodgerblue"), 
           panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                 colour = "dodgerblue"),
-          text=element_text(size=16,  family="mono"))
+          text=element_text(size=8,  family="mono"))
     
     if (window_pct_change$pct_diff < 0) {
       output_plot <- output_plot +
-        theme(plot.subtitle = element_text(size = 18, face = "bold",
+        theme(plot.subtitle = element_text(size = 8, face = "bold",
                                            colour = "red"
                                         ))
         
     } else if (window_pct_change$pct_diff > 0) {
       output_plot <- output_plot +
-        theme(plot.subtitle = element_text(size = 18, face = "bold",
+        theme(plot.subtitle = element_text(size = 8, face = "bold",
                                            colour = "chartreuse3"
                                         ))
     } else {
       output_plot <- output_plot +
-        theme(plot.subtitle = element_text(size = 18, face = "bold",
+        theme(plot.subtitle = element_text(size = 8, face = "bold",
                                            colour = "black"
                                         ))
     }
@@ -168,19 +168,19 @@ nCol <- floor(sqrt(n))
 
 mygrid <- do.call("grid.arrange", c(plist, ncol=nCol))
 
-tg <- textGrob('Big Tech Stock Prices Prior to Latest Layoffs as of 2023 Feb 06', gp = gpar(fontsize = 30, fontface = 'bold', fontfamily = "mono"))
+tg <- textGrob('Big Tech Stock Prices Prior to Latest Layoffs as of 2023 Feb 06', gp = gpar(fontsize = 10, fontface = 'bold', fontfamily = "mono"))
 sg <- textGrob(
 "Stock prices 6 months leading up to the latest layoffs in big tech; with the 
 exception of IBM and Oracle, stock performance did not outpace the rate of 
-inflation for big tech companies including MAMAA/FANG.", gp = gpar(fontsize = 24, fontfamily = "mono"))
-cg <- textGrob('Source: Yahoo Finance via Kaggle (by Evan Gower); https://layoffs.fyi/. Vizualization by @dstephanieq', gp = gpar(fontsize = 20, fontfamily = "mono"))
+inflation for big tech companies including MAMAA/FANG.", gp = gpar(fontsize = 8, fontfamily = "mono"))
+cg <- textGrob('Source: Yahoo Finance via Kaggle (by Evan Gower); https://layoffs.fyi/. Vizualization by @dstephanieq', gp = gpar(fontsize = 10, fontfamily = "mono"))
 margin <- unit(0.5, "line")
 grided <- mygrid
 png("./plots/tidytuesday_20230207.png", 
-    width = 600,
-    height = 400,
+    width = 300,
+    height = 200,
     units = "mm",
-    res=600)
+    res=300)
 gridExtra::grid.arrange(tg, sg, grided, cg,
                         heights = unit.c(grobHeight(tg) + 2*margin, 
                                          grobHeight(sg) + 1.5*margin, 
