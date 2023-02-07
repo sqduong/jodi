@@ -80,6 +80,30 @@ myplot_function <- function(target_stock_symbol, window = 90) {
                        date <= layoff_date) |>
          dplyr::filter( stock_symbol == target_stock_symbol)
   
+  window_pct_change <- temp_data |>
+    dplyr::group_by(company) |>
+    dplyr::slice_min(date) |>
+    dplyr::select(company, date, adj_close) |>
+    dplyr::rename(min_date = date,
+           min_adj_close = adj_close) |>
+    dplyr::inner_join(temp_data |>
+    dplyr::group_by(company) |>
+    dplyr::slice_max(date) |>
+    dplyr::select(company, date, adj_close),
+    by = dplyr::join_by(company)) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(diff = adj_close - min_adj_close,
+                  diff_pretty = ifelse(diff>0, paste0("+",round(diff, 2)),
+                                       round(diff, 2)),
+                  pct_diff = round((diff / min_adj_close)*100,1),
+                  pct_diff_chr = ifelse(pct_diff>0, paste0("+",pct_diff,"%"),
+                                        paste0(pct_diff,"%")),
+                  pct_diff_pretty = case_when(pct_diff < 0 ~
+                                                paste0("⬇",abs(pct_diff),"%"),
+                                              pct_diff > 0 ~
+                                                paste0("⬆",abs(pct_diff),"%"),
+                                              TRUE ~ pct_diff_chr
+                  ))    
   layoff_lines <- temp_data |>
              dplyr::filter(stock_symbol==target_stock_symbol) |> 
     dplyr::distinct(layoff_date) |>
@@ -87,7 +111,7 @@ myplot_function <- function(target_stock_symbol, window = 90) {
   
     output_plot <- ggplot(temp_data,
          aes(x = date)) +
-      geom_line(aes(y = open), size = 1, col = "cadetblue1") +
+      geom_line(aes(y = adj_close), size = 1, col = "cadetblue1") +
       scale_x_date(
         breaks = seq(min(layoff_lines) - lubridate::days(window), max(layoff_lines), by = round(window/3,0)),
         # date_breaks = paste0(round(window/3,0)," day"), 
@@ -101,16 +125,33 @@ myplot_function <- function(target_stock_symbol, window = 90) {
       ylab("Price ($)") +
       xlab("") +
       theme_classic(base_size = 16) +
-      ggtitle(glue::glue("{target_stock_symbol}"),
-              subtitle = glue::glue("{unique(temp_data$company)}")) + 
-    theme(plot.title = element_text(size = 20, face = "bold"),
-          plot.subtitle = element_text(size = 16),
+      ggtitle(glue::glue("{target_stock_symbol}\n{unique(temp_data$company)}"),
+              subtitle = glue::glue("{window_pct_change$diff_pretty} ({window_pct_change$pct_diff_chr})")) + 
+    theme(plot.title = element_text(size = 18, face = "bold"),
           panel.background = element_rect(fill = "dodgerblue4", colour = "#6D9EC1",
                                 size = 2, linetype = "solid"),
           panel.grid.major = element_line(size = 0.5, linetype = 'solid',
                                 colour = "dodgerblue"), 
           panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                 colour = "dodgerblue"))
+    
+    if (window_pct_change$pct_diff < 0) {
+      output_plot <- output_plot +
+        theme(plot.subtitle = element_text(size = 14, face = "bold",
+                                           colour = "red"
+                                        ))
+        
+    } else if (window_pct_change$pct_diff > 0) {
+      output_plot <- output_plot +
+        theme(plot.subtitle = element_text(size = 14, face = "bold",
+                                           colour = "chartreuse3"
+                                        ))
+    } else {
+      output_plot <- output_plot +
+        theme(plot.subtitle = element_text(size = 14, face = "bold",
+                                           colour = "black"
+                                        ))
+    }
     return(output_plot)
 }
 
