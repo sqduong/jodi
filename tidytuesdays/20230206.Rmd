@@ -169,7 +169,9 @@ nCol <- floor(sqrt(n))
 mygrid <- do.call("grid.arrange", c(plist, ncol=nCol))
 
 tg <- textGrob('Big Tech Stock Prices Prior to Latest Layoffs as of 2023 Feb 06', gp = gpar(fontsize = 30, fontface = 'bold', fontfamily = "mono"))
-sg <- textGrob("Stock prices 6 months leading up to the latest layoffs in big tech; with the exception of IBM and Oracle, stock performance did not outpace the rate of
+sg <- textGrob(
+"Stock prices 6 months leading up to the latest layoffs in big tech; with the 
+exception of IBM and Oracle, stock performance did not outpace the rate of 
 inflation for big tech companies including MAMAA/FANG.", gp = gpar(fontsize = 24, fontfamily = "mono"))
 cg <- textGrob('Source: Yahoo Finance via Kaggle (by Evan Gower); https://layoffs.fyi/. Vizualization by @dstephanieq', gp = gpar(fontsize = 20, fontfamily = "mono"))
 margin <- unit(0.5, "line")
