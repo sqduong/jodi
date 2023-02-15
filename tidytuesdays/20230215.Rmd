@@ -1,0 +1,134 @@
+---
+title: "TidyTuesday 2023-02-14"
+output: 
+  html_document:
+    code_folding: "hide"
+date: "2023-02-15"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# libraries 
+pacman::p_load("ggplot2",
+               "grid",
+               "dplyr",
+               "rvest",
+               "gridExtra",
+               "plotly")
+
+# Get the Data
+
+# Read in with tidytuesdayR package 
+# Install from CRAN via: install.packages("tidytuesdayR")
+# This loads the readme and all the datasets for the week of interest
+
+# Either ISO-8601 date or year/week works!
+
+tuesdata <- tidytuesdayR::tt_load('2023-02-14')
+tuesdata <- tidytuesdayR::tt_load(2023, week = 7)
+
+age_gaps <- tuesdata$age_gaps
+```
+
+
+```{r}
+age_gaps <- age_gaps |>
+  mutate(
+    couple_gender_groups = case_when(
+      (character_1_gender == "man" & character_2_gender == "man")|
+      (character_1_gender == "woman" & character_2_gender == "woman") 
+      ~ "Same Gender Couples",
+      TRUE ~ "Different Gender Couples"),
+    older_gender = case_when(
+      (character_1_gender == "man" & actor_1_age > actor_2_age)|
+        (character_2_gender == "man" & actor_2_age > actor_1_age)
+         ~ "1 - man",
+        (character_1_gender == "woman" & actor_1_age > actor_2_age)|
+         (character_2_gender == "woman" & actor_2_age > actor_1_age)
+        ~ "2 - woman",
+      TRUE ~ "3 - little or no difference in age"
+       
+    )
+    ) 
+
+myggplot <- age_gaps |>
+  ggplot(aes(x = release_year, 
+             y = age_difference,
+             color = older_gender)) +
+  geom_point(aes(text=movie_name)) +
+  facet_wrap(~couple_gender_groups, nrow = 2) +
+  theme_bw() 
+ggplotly(myggplot)
+
+```
+
+The first depiction of same gender couples in Hollywood films was in 1997. Among films with different gender couples, the male character is often older than his counterpart.
+
+
+# look at directors sex
+
+```{r}
+# Data source: https://data.world/howarder/gender-by-name
+name_gender <- read.csv("./name_gender.csv")
+
+# 25 director names not in the name_gender file
+# age_gaps |>
+#   mutate(director_first_name = stringr::word(director,1,1)) |>
+#   anti_join(name_gender |> rename(director_gender = gender), 
+# by = c("director_first_name"="name")) |> 
+# distinct(director, director_first_name) |> View()
+
+age_gaps3 <- age_gaps |>
+  mutate(director_first_name = stringr::word(director,1,1)) |>
+  left_join(name_gender |> rename(director_gender = gender), 
+             by = c("director_first_name"="name")) |>
+  mutate(director_gender = case_when(
+    director %in% c("Katt Shea",
+                    "Nahnatchka Khan",
+                    "Massy Tadjedin",
+                    "Phyllida Lloyd") ~ "F",
+    director %in% c("René Clair",
+                    "Bobcat Goldthwait",
+                    "Jean-Jacques Annaud",
+                    "J.J. Abrams",
+                    "Yorgos Lanthimos",
+                    "M. Night Shyamalan",
+                    "Barbet Schroeder",
+                    "Baz Luhrmann",
+                    "Jean-Pierre Jeunet",
+                    "P.J. Hogan",
+                    "Abdellatif Kechiche",
+                    "Gore Verbinski",
+                    "Franc. Reyes",
+                    "F. Gary Gray",
+                    "McG",
+                    "Ol Parker",
+                    "Tarsem Singh",
+                    "J.C. Chandor",
+                    "Jean-Marc Vallée",
+                    "Homi Adajania",
+                    "Dome Karukoski"
+                    ) ~ "M",
+    TRUE ~ director_gender),
+    director_gender = factor(director_gender, levels = c("M","F")))
+group_by(age_gaps3, 
+         director_gender) |>
+  summarise(n=n())
+myggplot <- age_gaps3 |>
+  ggplot(aes(x = release_year, color = director_gender, fill = director_gender)) +
+  geom_histogram(binwidth = 5, alpha=0.5, position = "identity") +
+  scale_x_continuous(limits = c(1935,2022), breaks = seq(1935, 2022, by = 10)) +
+  theme_classic() +
+  scale_fill_grey() +
+  scale_color_grey() +
+  xlab("Release Year") +
+  ylab("Count") +
+  guides(color = guide_legend(title="Director's Gender"),
+         fill = guide_legend(title="Director's Gender"))
+myggplot
+```
+
+Less than 10% of all Hollywood films released between 1935 and 2022 had female directors.
+
+
